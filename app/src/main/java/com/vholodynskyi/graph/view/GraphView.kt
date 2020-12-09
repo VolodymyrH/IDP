@@ -4,9 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Rect
 import android.util.AttributeSet
-import android.util.Log
 import android.view.View
 import java.util.*
 
@@ -16,12 +14,14 @@ class GraphView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    private fun Int.toGraphX() = DEF_PADDING + ((width.toFloat() - DEF_PADDING - DEF_PADDING) / xMax) * this
+    private fun Int.toGraphY() = DEF_PADDING + ((height.toFloat() - DEF_PADDING - DEF_PADDING) / yMax) * this
+
     companion object {
         private const val TAG = "GraphView"
-    }
 
-    private fun Int.toRealX() = width - (toFloat() / xMax * width)
-    private fun Int.toRealY() = height - (toFloat() / yMax * height)
+        private const val DEF_PADDING = 50f
+    }
 
     private val dataSet = mutableListOf<DataPoint>()
     private var xMin = 0
@@ -29,12 +29,18 @@ class GraphView @JvmOverloads constructor(
     private var yMin = 0
     private var yMax = 0
 
+    private val graphBoundX: Pair<Float, Float>
+    private val graphBoundY: Pair<Float, Float>
+
     init {
         val demoList = LinkedList<DataPoint>()
         for (i in 0..9) {
-            demoList.add(generateRandom(i))
+            demoList.add(generateRandom(i+1))
         }
         setData(demoList)
+
+        graphBoundX = Pair(DEF_PADDING, width.toFloat() - DEF_PADDING)
+        graphBoundY = Pair(DEF_PADDING, height.toFloat() - DEF_PADDING)
     }
 
     private val dataPointPaint = Paint().apply {
@@ -61,32 +67,36 @@ class GraphView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-//        dataSet.forEachIndexed { index, currentDataPoint ->
-//            val realX = currentDataPoint.x.toRealX()
-//            val realY = currentDataPoint.y.toRealY()
-//
-//            if (index < dataSet.size - 1) {
-//                val nextDataPoint = dataSet[index + 1]
-//                val startX = currentDataPoint.x.toRealX()
-//                val startY = currentDataPoint.y.toRealY()
-//                val endX = nextDataPoint.x.toRealX()
-//                val endY = nextDataPoint.y.toRealY()
-//                canvas.drawLine(startX, startY, endX, endY, dataPointLinePaint)
-//            }
-//
-//            canvas.drawCircle(realX, realY, 10f, dataPointFillPaint)
-//            canvas.drawCircle(realX, realY, 10f, dataPointPaint)
-//        }
+        dataSet.forEachIndexed { index, currentDataPoint ->
+            if (index < dataSet.size - 1) {
+                val nextDataPoint = dataSet[index + 1]
 
-        canvas.drawLine(0f, 0f, 0f, height.toFloat(), axisLinePaint)
-        canvas.drawLine(0f, height.toFloat(), width.toFloat(), height.toFloat(), axisLinePaint)
+                val startX = currentDataPoint.x.toGraphX()
+                val startY = currentDataPoint.y.toGraphY()
+                val endX = nextDataPoint.x.toGraphX()
+                val endY = nextDataPoint.y.toGraphY()
+                canvas.drawLine(startX, startY, endX, endY, dataPointLinePaint)
+
+                canvas.drawCircle(startX, startY, 10f, dataPointFillPaint)
+                canvas.drawCircle(startX, startY, 10f, dataPointPaint)
+            }
+        }
+
+        canvas.drawLine(DEF_PADDING, DEF_PADDING, DEF_PADDING, height.toFloat() - DEF_PADDING, axisLinePaint)
+        canvas.drawLine(
+            DEF_PADDING,
+            height.toFloat() - DEF_PADDING,
+            width.toFloat() - DEF_PADDING,
+            height.toFloat() - DEF_PADDING,
+            axisLinePaint
+        )
     }
 
-    fun setData(newDataSet: List<DataPoint>) {
+    private fun setData(newDataSet: List<DataPoint>) {
         xMin = newDataSet.minBy { it.x }?.x ?: 0
-        xMax = newDataSet.maxBy { it.x }?.x ?: 0 + 1
+        xMax = newDataSet.maxBy { it.x }?.x ?: 0
         yMin = newDataSet.minBy { it.y }?.y ?: 0
-        yMax = newDataSet.maxBy { it.y }?.y ?: 0 + 1
+        yMax = newDataSet.maxBy { it.y }?.y ?: 0
         dataSet.clear()
         dataSet.addAll(newDataSet)
         invalidate()
