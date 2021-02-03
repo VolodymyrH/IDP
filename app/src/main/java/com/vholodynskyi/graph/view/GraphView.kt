@@ -9,13 +9,13 @@ import android.view.View
 import java.util.*
 
 class GraphView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
+        context: Context,
+        attrs: AttributeSet? = null,
+        defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private fun Int.toGraphX() = DEF_PADDING + ((width.toFloat() - DEF_PADDING - DEF_PADDING) / xMax) * this
-    private fun Int.toGraphY() = DEF_PADDING + ((height.toFloat() - DEF_PADDING - DEF_PADDING) / yMax) * this
+    private fun Int.toGraphX() = (((width.toFloat() * 0.9) / xMax) * this).toFloat()
+    private fun Int.toGraphY() = (height.toFloat() - ((height.toFloat() * 0.9) / yMax) * this).toFloat()
 
     companion object {
         private const val TAG = "GraphView"
@@ -29,18 +29,15 @@ class GraphView @JvmOverloads constructor(
     private var yMin = 0
     private var yMax = 0
 
-    private val graphBoundX: Pair<Float, Float>
-    private val graphBoundY: Pair<Float, Float>
-
     init {
         val demoList = LinkedList<DataPoint>()
-        for (i in 0..9) {
-            demoList.add(generateRandom(i+1))
-        }
+        demoList.add(DataPoint(0, 0))
+        demoList.add(DataPoint(1, 1))
+        demoList.add(DataPoint(2, 2))
+        demoList.add(DataPoint(3, 3))
+        demoList.add(DataPoint(4, 4))
+        demoList.add(DataPoint(5, 10))
         setData(demoList)
-
-        graphBoundX = Pair(DEF_PADDING, width.toFloat() - DEF_PADDING)
-        graphBoundY = Pair(DEF_PADDING, height.toFloat() - DEF_PADDING)
     }
 
     private val dataPointPaint = Paint().apply {
@@ -59,37 +56,68 @@ class GraphView @JvmOverloads constructor(
         isAntiAlias = true
     }
 
+    private val textPaint = Paint().apply {
+        color = Color.BLUE
+        textSize = 50f
+        style = Paint.Style.STROKE
+    }
+
     private val axisLinePaint = Paint().apply {
         color = Color.RED
-        strokeWidth = 10f
+        strokeWidth = 7f
+    }
+
+    private val gridLinePaint = Paint().apply {
+        color = Color.GRAY
+        strokeWidth = 3f
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        dataSet.forEachIndexed { index, currentDataPoint ->
-            if (index < dataSet.size - 1) {
-                val nextDataPoint = dataSet[index + 1]
+        canvas.translate(DEF_PADDING, -DEF_PADDING)
 
-                val startX = currentDataPoint.x.toGraphX()
-                val startY = currentDataPoint.y.toGraphY()
+        drawGraph(canvas)
+        drawAxis(canvas)
+        drawGrid(canvas)
+    }
+
+    private fun drawAxis(canvas: Canvas) {
+        val h = height.toFloat()
+        val w = width.toFloat()
+
+        canvas.drawLine(0f, 0f, 0f, h, axisLinePaint)
+        canvas.drawLine(0f, h, w, h, axisLinePaint)
+    }
+
+    private fun drawGraph(canvas: Canvas) {
+        dataSet.forEachIndexed { index, currentDataPoint ->
+            val startX = currentDataPoint.x.toGraphX()
+            val startY = currentDataPoint.y.toGraphY()
+
+            if (index != dataSet.size - 1) {
+                val nextDataPoint = dataSet[index + 1]
                 val endX = nextDataPoint.x.toGraphX()
                 val endY = nextDataPoint.y.toGraphY()
                 canvas.drawLine(startX, startY, endX, endY, dataPointLinePaint)
-
-                canvas.drawCircle(startX, startY, 10f, dataPointFillPaint)
-                canvas.drawCircle(startX, startY, 10f, dataPointPaint)
             }
-        }
 
-        canvas.drawLine(DEF_PADDING, DEF_PADDING, DEF_PADDING, height.toFloat() - DEF_PADDING, axisLinePaint)
-        canvas.drawLine(
-            DEF_PADDING,
-            height.toFloat() - DEF_PADDING,
-            width.toFloat() - DEF_PADDING,
-            height.toFloat() - DEF_PADDING,
-            axisLinePaint
-        )
+            canvas.drawCircle(startX, startY, 10f, dataPointFillPaint)
+            canvas.drawCircle(startX, startY, 10f, dataPointPaint)
+        }
+    }
+
+    private fun drawGrid(canvas: Canvas) {
+        for (i in 1..yMax) {
+            val iToY = i.toGraphY()
+            canvas.drawText(i.toString(), -DEF_PADDING, iToY, textPaint)
+            canvas.drawLine(0f, iToY, width.toFloat(), iToY, gridLinePaint)
+        }
+        for (i in 1..xMax) {
+            val iToX = i.toGraphX()
+            canvas.drawText(i.toString(), iToX, height.toFloat() + DEF_PADDING, textPaint)
+            canvas.drawLine(iToX, 0f, iToX, height.toFloat(), gridLinePaint)
+        }
     }
 
     private fun setData(newDataSet: List<DataPoint>) {
