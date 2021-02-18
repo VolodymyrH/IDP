@@ -5,8 +5,11 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
+import android.widget.Toast
 import java.util.*
+import kotlin.math.sqrt
 
 class GraphView @JvmOverloads constructor(
         context: Context,
@@ -28,6 +31,8 @@ class GraphView @JvmOverloads constructor(
     private var xMax = 0
     private var yMin = 0
     private var yMax = 0
+
+    private var closestPoint = DataPoint(xMax + 1, yMax)
 
     init {
         val demoList = LinkedList<DataPoint>()
@@ -72,6 +77,18 @@ class GraphView @JvmOverloads constructor(
         strokeWidth = 3f
     }
 
+    override fun onTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.action) {
+            MotionEvent.ACTION_DOWN -> {
+                closestPoint = getClosest(ev.x, ev.y)
+
+                invalidate()
+            }
+        }
+
+        return true
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
@@ -102,13 +119,15 @@ class GraphView @JvmOverloads constructor(
                 canvas.drawLine(startX, startY, endX, endY, dataPointLinePaint)
             }
 
-            canvas.drawCircle(startX, startY, 10f, dataPointFillPaint)
-            canvas.drawCircle(startX, startY, 10f, dataPointPaint)
+            if (currentDataPoint == closestPoint) {
+                showPopup(currentDataPoint, canvas)
+            }
         }
     }
 
     private fun drawGrid(canvas: Canvas) {
         for (i in 1..yMax) {
+            //add text layout for text alignment
             val iToY = i.toGraphY()
             canvas.drawText(i.toString(), -DEF_PADDING, iToY, textPaint)
             canvas.drawLine(0f, iToY, width.toFloat(), iToY, gridLinePaint)
@@ -118,6 +137,32 @@ class GraphView @JvmOverloads constructor(
             canvas.drawText(i.toString(), iToX, height.toFloat() + DEF_PADDING, textPaint)
             canvas.drawLine(iToX, 0f, iToX, height.toFloat(), gridLinePaint)
         }
+    }
+
+    private fun getClosest(x: Float, y: Float) : DataPoint {
+        var shortest = 10000f
+        var closest = DataPoint(xMax + 1, yMax)
+
+        dataSet.forEachIndexed { _, dataPoint ->
+            val deltaX = x - dataPoint.x.toGraphX()
+            val deltaY = y - dataPoint.y.toGraphY()
+
+            val d = sqrt(deltaX * deltaX + deltaY * deltaY)
+
+            if (d < shortest) {
+                shortest = d
+                closest = dataPoint
+            }
+        }
+        return closest
+    }
+
+    private fun showPopup(dataPoint: DataPoint, canvas: Canvas) {
+        val x = dataPoint.x.toGraphX()
+        val y = dataPoint.x.toGraphY()
+        canvas.drawCircle(x, y, 10f, dataPointFillPaint)
+        canvas.drawCircle(x, y, 10f, dataPointPaint)
+        Toast.makeText(context, "Колись зроблю. ${dataPoint.x} - ${dataPoint.y}", Toast.LENGTH_SHORT).show()
     }
 
     private fun setData(newDataSet: List<DataPoint>) {
