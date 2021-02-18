@@ -5,10 +5,12 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
 import java.util.*
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 class GraphView @JvmOverloads constructor(
@@ -24,6 +26,7 @@ class GraphView @JvmOverloads constructor(
         private const val TAG = "GraphView"
 
         private const val DEF_PADDING = 50f
+        private const val RANGE_STEP = 1
     }
 
     private val dataSet = mutableListOf<DataPoint>()
@@ -33,6 +36,8 @@ class GraphView @JvmOverloads constructor(
     private var yMax = 0
 
     private var closestPoint = DataPoint(xMax + 1, yMax)
+
+    private var swipeAnchorX = 0f
 
     init {
         val demoList = LinkedList<DataPoint>()
@@ -80,9 +85,23 @@ class GraphView @JvmOverloads constructor(
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         when (ev.action) {
             MotionEvent.ACTION_DOWN -> {
+                swipeAnchorX = ev.x
                 closestPoint = getClosest(ev.x, ev.y)
 
                 invalidate()
+                return true
+            }
+            MotionEvent.ACTION_UP -> {
+                val swipeDistance = abs(ev.x - swipeAnchorX).toInt()
+
+                if (swipeDistance > 150) {
+                    if (ev.x > swipeAnchorX) {
+                        Log.d(TAG, "Swipe Right, distance $swipeDistance")
+                    } else {
+                        Log.d(TAG, "Swipe Left, distance $swipeDistance")
+                    }
+                }
+                return true
             }
         }
 
@@ -94,9 +113,9 @@ class GraphView @JvmOverloads constructor(
 
         canvas.translate(DEF_PADDING, -DEF_PADDING)
 
+        drawGrid(canvas)
         drawGraph(canvas)
         drawAxis(canvas)
-        drawGrid(canvas)
     }
 
     private fun drawAxis(canvas: Canvas) {
@@ -135,7 +154,7 @@ class GraphView @JvmOverloads constructor(
         for (i in 1..xMax) {
             val iToX = i.toGraphX()
             canvas.drawText(i.toString(), iToX, height.toFloat() + DEF_PADDING, textPaint)
-            canvas.drawLine(iToX, 0f, iToX, height.toFloat(), gridLinePaint)
+//            canvas.drawLine(iToX, 0f, iToX, height.toFloat(), gridLinePaint)
         }
     }
 
