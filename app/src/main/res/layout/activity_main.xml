@@ -6,13 +6,9 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <com.vholodynskyi.graph.view.GraphView
+    <com.vholodynskyi.graph.view.GraphLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

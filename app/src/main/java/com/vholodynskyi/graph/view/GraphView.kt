@@ -4,6 +4,10 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.text.DynamicLayout
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
@@ -66,10 +70,9 @@ class GraphView @JvmOverloads constructor(
         isAntiAlias = true
     }
 
-    private val textPaint = Paint().apply {
+    private val textPaint = TextPaint().apply {
         color = Color.BLUE
-        textSize = 50f
-        style = Paint.Style.STROKE
+        textSize = 40f
     }
 
     private val axisLinePaint = Paint().apply {
@@ -78,7 +81,7 @@ class GraphView @JvmOverloads constructor(
     }
 
     private val gridLinePaint = Paint().apply {
-        color = Color.GRAY
+        color = Color.BLACK
         strokeWidth = 3f
     }
 
@@ -92,11 +95,12 @@ class GraphView @JvmOverloads constructor(
                 return true
             }
             MotionEvent.ACTION_UP -> {
-                val swipeDistance = abs(ev.x - swipeAnchorX).toInt()
+                val swipeDistance = abs(ev.x - swipeAnchorX)
 
                 if (swipeDistance > 150) {
                     if (ev.x > swipeAnchorX) {
-                        Log.d(TAG, "Swipe Right, distance $swipeDistance")
+                        val relateDistance = swipeDistance / width
+                        Log.d(TAG, "Swipe Right, relateDistance $relateDistance")
                     } else {
                         Log.d(TAG, "Swipe Left, distance $swipeDistance")
                     }
@@ -128,6 +132,8 @@ class GraphView @JvmOverloads constructor(
 
     private fun drawGraph(canvas: Canvas) {
         dataSet.forEachIndexed { index, currentDataPoint ->
+
+            //весь канвас і давати транслейт
             val startX = currentDataPoint.x.toGraphX()
             val startY = currentDataPoint.y.toGraphY()
 
@@ -154,7 +160,6 @@ class GraphView @JvmOverloads constructor(
         for (i in 1..xMax) {
             val iToX = i.toGraphX()
             canvas.drawText(i.toString(), iToX, height.toFloat() + DEF_PADDING, textPaint)
-//            canvas.drawLine(iToX, 0f, iToX, height.toFloat(), gridLinePaint)
         }
     }
 
@@ -181,7 +186,8 @@ class GraphView @JvmOverloads constructor(
         val y = dataPoint.x.toGraphY()
         canvas.drawCircle(x, y, 10f, dataPointFillPaint)
         canvas.drawCircle(x, y, 10f, dataPointPaint)
-        Toast.makeText(context, "Колись зроблю. ${dataPoint.x} - ${dataPoint.y}", Toast.LENGTH_SHORT).show()
+
+        (parent as? GraphLayout)?.showPopup(x)
     }
 
     private fun setData(newDataSet: List<DataPoint>) {
