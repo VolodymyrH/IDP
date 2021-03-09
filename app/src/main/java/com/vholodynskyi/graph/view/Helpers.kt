@@ -2,6 +2,8 @@ package com.vholodynskyi.graph.view
 
 import java.time.Month
 import kotlin.collections.ArrayList
+import kotlin.math.abs
+import kotlin.math.log10
 import kotlin.random.Random
 
 data class GraphData(val month: Month, val days: DataPoint)
@@ -26,4 +28,9 @@ private fun dataForDays(): List<DataPoint> {
     }
 
     return result
+}
+
+fun Int.length() = when(this) {
+    0 -> 1
+    else -> log10(abs(toDouble())).toInt() + 1
 }

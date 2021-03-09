@@ -8,9 +8,9 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.text.TextPaint
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import androidx.core.animation.doOnStart
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -30,7 +30,7 @@ class GraphView @JvmOverloads constructor(
         private const val POINTER_RADIUS = 10f
         private const val DEF_PADDING = 50f
         private const val MIN_SWIPE_LENGTH = 150f
-        private const val SCROLL_FRACTION = 5
+        private const val SCROLL_FRACTION = 4
     }
 
     private val dataSet = mutableListOf<GraphData>()
@@ -59,14 +59,24 @@ class GraphView @JvmOverloads constructor(
         isAntiAlias = true
     }
 
-    private val textPaint = TextPaint().apply {
+    private val yAxisTextPaint = TextPaint().apply {
         color = Color.BLUE
         textSize = 40f
+    }
+
+    private val xAxisTextPaint = TextPaint().apply {
+        color = Color.BLUE
+        textSize = 30f
     }
 
     private val axisLinePaint = Paint().apply {
         color = Color.RED
         strokeWidth = 7f
+    }
+
+    private val popupLinePaint = Paint().apply {
+        color = Color.GRAY
+        strokeWidth = 5f
     }
 
     private val gridLinePaint = Paint().apply {
@@ -83,12 +93,18 @@ class GraphView @JvmOverloads constructor(
     init {
         scrollAnimator.addUpdateListener {
             val animatedValue = it.animatedValue as Float
+            val endX = xMax * step
 
-            scroll = if (animatedValue < 0) animatedValue else 0f
+            scroll = when {
+                animatedValue < 0 -> animatedValue
+                animatedValue > endX -> endX
+                else -> 0f
+            }
 
             invalidate()
         }
         scrollAnimator.duration = 1000
+        scrollAnimator.doOnStart { dismissPopup() }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -133,7 +149,7 @@ class GraphView @JvmOverloads constructor(
 
             if (index != dataSet.size - 1) {
                 val nextDataPoint = dataSet[index + 1]
-                val endX = startX + step * index
+                val endX = startX + step
                 val endY = nextDataPoint.days.y.toGraphY()
                 canvas.drawLine(startX, startY, endX, endY, dataPointLinePaint)
                 startX = endX
@@ -146,8 +162,8 @@ class GraphView @JvmOverloads constructor(
     }
 
     private fun drawAxis(canvas: Canvas) {
-        val initialX = 1.toGraphX()
-        val initialY = 1.toGraphY()
+        val initialX = 0.toGraphX()
+        val initialY = 0.toGraphY()
         val endX = initialX + xMax * width / 4f
         val independentX = 0.toGraphX() + scroll
 
@@ -157,20 +173,17 @@ class GraphView @JvmOverloads constructor(
         canvas.drawLine(independentX, 0f, independentX, initialY, axisLinePaint)
         for (i in 1..yMax step (yMax * 0.1).toInt()) {
             val iToY = i.toGraphY()
-            canvas.drawText(i.toString(), independentX - DEF_PADDING, iToY, textPaint)
+            canvas.drawText(i.toString(), independentX - DEF_PADDING, iToY, yAxisTextPaint)
             canvas.drawLine(independentX, iToY, endX, iToY, gridLinePaint)
         }
 
         // X axis
         canvas.drawLine(independentX, initialY, endX, initialY, axisLinePaint)
         for (i in 0 until dataSet.size) {
-            canvas.drawText(
-                dataSet[i].month.name,
-                currentX,
-                height.toFloat() + DEF_PADDING,
-                textPaint
-            )
-            currentX += step + i * step
+            val text = dataSet[i].month.name
+
+            canvas.drawText(text, currentX - DEF_PADDING, height.toFloat() + DEF_PADDING, xAxisTextPaint)
+            currentX = step + i * step
         }
     }
 
@@ -196,10 +209,16 @@ class GraphView @JvmOverloads constructor(
         val index = dataSet.indexOf(dataPoint)
         val x = index * step
         val y = dataPoint.days.y.toGraphY()
+        canvas.drawLine(x, 0f, x, 0.toGraphY(), popupLinePaint)
         canvas.drawCircle(x, y, POINTER_RADIUS, dataPointFillPaint)
         canvas.drawCircle(x, y, POINTER_RADIUS, dataPointPaint)
 
         (parent as? GraphLayout)?.showPopup(x)
+    }
+
+    private fun dismissPopup() {
+        (parent as? GraphLayout)?.dismissPopup()
+        closestPoint = DataPoint(xMax + 1, yMax)
     }
 
     fun setData(newDataSet: List<GraphData>) {

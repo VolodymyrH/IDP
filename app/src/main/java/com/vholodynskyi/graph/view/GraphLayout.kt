@@ -76,4 +76,8 @@ class GraphLayout @JvmOverloads constructor(
             }
         }
     }
+
+    fun dismissPopup() {
+        popup.dismiss()
+    }
 }
