@@ -4,55 +4,39 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.text.DynamicLayout
-import android.text.Layout
-import android.text.StaticLayout
 import android.text.TextPaint
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import android.widget.Toast
-import java.util.*
 import kotlin.math.abs
 import kotlin.math.sqrt
 
 class GraphView @JvmOverloads constructor(
-        context: Context,
-        attrs: AttributeSet? = null,
-        defStyleAttr: Int = 0
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
     private fun Int.toGraphX() = (((width.toFloat() * 0.9) / xMax) * this).toFloat()
-    private fun Int.toGraphY() = (height.toFloat() - ((height.toFloat() * 0.9) / yMax) * this).toFloat()
+    private fun Int.toGraphY() =
+        (height.toFloat() - ((height.toFloat() * 0.9) / yMax) * this).toFloat()
 
     companion object {
         private const val TAG = "GraphView"
 
+        private const val POINTER_RADIUS = 10f
         private const val DEF_PADDING = 50f
-        private const val RANGE_STEP = 1
     }
 
-    private val dataSet = mutableListOf<DataPoint>()
-    private var xMin = 0
+    private val dataSet = mutableListOf<GraphData>()
     private var xMax = 0
     private var yMin = 0
     private var yMax = 0
-
     private var closestPoint = DataPoint(xMax + 1, yMax)
-
     private var swipeAnchorX = 0f
-
-    init {
-        val demoList = LinkedList<DataPoint>()
-        demoList.add(DataPoint(0, 0))
-        demoList.add(DataPoint(1, 1))
-        demoList.add(DataPoint(2, 2))
-        demoList.add(DataPoint(3, 3))
-        demoList.add(DataPoint(4, 4))
-        demoList.add(DataPoint(5, 10))
-        setData(demoList)
-    }
+    private var scroll = 0f
+    private var step = 0f
 
     private val dataPointPaint = Paint().apply {
         color = Color.GREEN
@@ -85,12 +69,17 @@ class GraphView @JvmOverloads constructor(
         strokeWidth = 3f
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+
+        step = w / 4f
+    }
+
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         when (ev.action) {
             MotionEvent.ACTION_DOWN -> {
                 swipeAnchorX = ev.x
                 closestPoint = getClosest(ev.x, ev.y)
-
                 invalidate()
                 return true
             }
@@ -115,86 +104,94 @@ class GraphView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+//        canvas.translate(-scroll + DEF_PADDING, -DEF_PADDING)
         canvas.translate(DEF_PADDING, -DEF_PADDING)
-
-        drawGrid(canvas)
         drawGraph(canvas)
         drawAxis(canvas)
     }
 
-    private fun drawAxis(canvas: Canvas) {
-        val h = height.toFloat()
-        val w = width.toFloat()
-
-        canvas.drawLine(0f, 0f, 0f, h, axisLinePaint)
-        canvas.drawLine(0f, h, w, h, axisLinePaint)
-    }
-
     private fun drawGraph(canvas: Canvas) {
-        dataSet.forEachIndexed { index, currentDataPoint ->
+        var startX = 0f
 
-            //весь канвас і давати транслейт
-            val startX = currentDataPoint.x.toGraphX()
-            val startY = currentDataPoint.y.toGraphY()
+        dataSet.forEachIndexed { index, currentDataPoint ->
+            val startY = currentDataPoint.days.y.toGraphY()
 
             if (index != dataSet.size - 1) {
                 val nextDataPoint = dataSet[index + 1]
-                val endX = nextDataPoint.x.toGraphX()
-                val endY = nextDataPoint.y.toGraphY()
+                val endX = startX + step * index
+                val endY = nextDataPoint.days.y.toGraphY()
                 canvas.drawLine(startX, startY, endX, endY, dataPointLinePaint)
+                startX = endX
             }
 
-            if (currentDataPoint == closestPoint) {
+            if (currentDataPoint.days == closestPoint) {
                 showPopup(currentDataPoint, canvas)
             }
         }
     }
 
-    private fun drawGrid(canvas: Canvas) {
-        for (i in 1..yMax) {
-            //add text layout for text alignment
+    private fun drawAxis(canvas: Canvas) {
+        val initialX = 1.toGraphX()
+        val initialY = 1.toGraphY()
+        val endX = initialX + xMax * width / 4f
+        val independentX = 0.toGraphX() + scroll
+
+        var currentX = initialX
+
+        // Y axis
+        canvas.drawLine(independentX, 0f, independentX, initialY, axisLinePaint)
+        for (i in 1..yMax step (yMax * 0.1).toInt()) {
             val iToY = i.toGraphY()
-            canvas.drawText(i.toString(), -DEF_PADDING, iToY, textPaint)
-            canvas.drawLine(0f, iToY, width.toFloat(), iToY, gridLinePaint)
+            canvas.drawText(i.toString(), independentX - DEF_PADDING, iToY, textPaint)
+            canvas.drawLine(independentX, iToY, endX, iToY, gridLinePaint)
         }
-        for (i in 1..xMax) {
-            val iToX = i.toGraphX()
-            canvas.drawText(i.toString(), iToX, height.toFloat() + DEF_PADDING, textPaint)
+
+        // X axis
+        canvas.drawLine(independentX, initialY, endX, initialY, axisLinePaint)
+        for (i in 0 until dataSet.size) {
+            canvas.drawText(
+                dataSet[i].month.name,
+                currentX,
+                height.toFloat() + DEF_PADDING,
+                textPaint
+            )
+            currentX += step + i * step
         }
     }
 
-    private fun getClosest(x: Float, y: Float) : DataPoint {
-        var shortest = 10000f
-        var closest = DataPoint(xMax + 1, yMax)
+    private fun getClosest(x: Float, y: Float): DataPoint {
+        var shortest = 1000000f
+        var closest = DataPoint.Null
 
-        dataSet.forEachIndexed { _, dataPoint ->
-            val deltaX = x - dataPoint.x.toGraphX()
-            val deltaY = y - dataPoint.y.toGraphY()
+        dataSet.forEachIndexed { index, dataPoint ->
+            val deltaX = x - index * step
+            val deltaY = y - dataPoint.days.y.toGraphY()
 
             val d = sqrt(deltaX * deltaX + deltaY * deltaY)
 
             if (d < shortest) {
                 shortest = d
-                closest = dataPoint
+                closest = dataPoint.days
             }
         }
         return closest
     }
 
-    private fun showPopup(dataPoint: DataPoint, canvas: Canvas) {
-        val x = dataPoint.x.toGraphX()
-        val y = dataPoint.x.toGraphY()
-        canvas.drawCircle(x, y, 10f, dataPointFillPaint)
-        canvas.drawCircle(x, y, 10f, dataPointPaint)
+    private fun showPopup(dataPoint: GraphData, canvas: Canvas) {
+        val index = dataSet.indexOf(dataPoint)
+        val x = index * step
+        val y = dataPoint.days.y.toGraphY()
+        canvas.drawCircle(x, y, POINTER_RADIUS, dataPointFillPaint)
+        canvas.drawCircle(x, y, POINTER_RADIUS, dataPointPaint)
 
         (parent as? GraphLayout)?.showPopup(x)
     }
 
-    private fun setData(newDataSet: List<DataPoint>) {
-        xMin = newDataSet.minBy { it.x }?.x ?: 0
-        xMax = newDataSet.maxBy { it.x }?.x ?: 0
-        yMin = newDataSet.minBy { it.y }?.y ?: 0
-        yMax = newDataSet.maxBy { it.y }?.y ?: 0
+    fun setData(newDataSet: List<GraphData>) {
+        xMax = newDataSet.size
+        yMin = newDataSet.minOf { it.days.y }
+        yMax = newDataSet.maxOf { it.days.y }
+
         dataSet.clear()
         dataSet.addAll(newDataSet)
         invalidate()

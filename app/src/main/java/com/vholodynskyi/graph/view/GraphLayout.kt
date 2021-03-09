@@ -3,7 +3,6 @@ package com.vholodynskyi.graph.view
 import android.animation.ValueAnimator
 import android.content.Context
 import android.util.AttributeSet
-import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupWindow
@@ -18,6 +17,8 @@ class GraphLayout @JvmOverloads constructor(
 ) : ViewGroup(context, attrs, defStyleAttr) {
 
     companion object {
+        private const val TAG = "GraphLayout"
+
         private const val POPUP_TOP_MARGIN = 450
     }
 
@@ -34,10 +35,13 @@ class GraphLayout @JvmOverloads constructor(
 
         headerText.text = "Followers"
         headerText.textSize = 14f
+
         dateText.text = "1 Jan 2020 - 1 Dec 2020"
         dateText.textSize = 14f
 
         popup.contentView = inflate(context, R.layout.l_popup, null)
+
+        graphView.setData(generateData())
 
         addView(backgroundView)
         addView(graphView)
@@ -54,9 +58,7 @@ class GraphLayout @JvmOverloads constructor(
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         headerText.layout(l + 50, t, r, b)
         dateText.layout(l + width - 450, t, r, b)
-
         graphView.layout(l + 50, t + 150, r - 50, b / 2)
-
     }
 
     fun showPopup(dataPoint: Float) {
