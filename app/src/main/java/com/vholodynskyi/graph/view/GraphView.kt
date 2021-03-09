@@ -1,5 +1,7 @@
 package com.vholodynskyi.graph.view
 
+import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -27,6 +29,8 @@ class GraphView @JvmOverloads constructor(
 
         private const val POINTER_RADIUS = 10f
         private const val DEF_PADDING = 50f
+        private const val MIN_SWIPE_LENGTH = 150f
+        private const val SCROLL_FRACTION = 5
     }
 
     private val dataSet = mutableListOf<GraphData>()
@@ -37,6 +41,7 @@ class GraphView @JvmOverloads constructor(
     private var swipeAnchorX = 0f
     private var scroll = 0f
     private var step = 0f
+    private val scrollAnimator = ValueAnimator()
 
     private val dataPointPaint = Paint().apply {
         color = Color.GREEN
@@ -75,24 +80,34 @@ class GraphView @JvmOverloads constructor(
         step = w / 4f
     }
 
+    init {
+        scrollAnimator.addUpdateListener {
+            val animatedValue = it.animatedValue as Float
+
+            scroll = if (animatedValue < 0) animatedValue else 0f
+
+            invalidate()
+        }
+        scrollAnimator.duration = 1000
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         when (ev.action) {
             MotionEvent.ACTION_DOWN -> {
                 swipeAnchorX = ev.x
-                closestPoint = getClosest(ev.x, ev.y)
-                invalidate()
                 return true
             }
             MotionEvent.ACTION_UP -> {
-                val swipeDistance = abs(ev.x - swipeAnchorX)
+                val swipeDistance = ev.x - swipeAnchorX
+                val absSwipeDistance = abs(swipeDistance)
 
-                if (swipeDistance > 150) {
-                    if (ev.x > swipeAnchorX) {
-                        val relateDistance = swipeDistance / width
-                        Log.d(TAG, "Swipe Right, relateDistance $relateDistance")
-                    } else {
-                        Log.d(TAG, "Swipe Left, distance $swipeDistance")
-                    }
+                if (absSwipeDistance > MIN_SWIPE_LENGTH) {
+                    scrollAnimator.setFloatValues(scroll, scroll + swipeDistance)
+                    scrollAnimator.start()
+                } else {
+                    closestPoint = getClosest(ev.x, ev.y)
+                    invalidate()
                 }
                 return true
             }
@@ -104,8 +119,8 @@ class GraphView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-//        canvas.translate(-scroll + DEF_PADDING, -DEF_PADDING)
-        canvas.translate(DEF_PADDING, -DEF_PADDING)
+        val scrollX = (scroll * SCROLL_FRACTION) + DEF_PADDING
+        canvas.translate(scrollX, -DEF_PADDING)
         drawGraph(canvas)
         drawAxis(canvas)
     }
