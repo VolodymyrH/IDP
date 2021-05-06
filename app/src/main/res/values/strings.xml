@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Graph</string>
+    <string name="fire">Fire</string>
+    <string name="up">Up</string>
+    <string name="down">Down</string>
+    <string name="rigth">Rigth</string>
+    <string name="left">Left</string>
 </resources>
