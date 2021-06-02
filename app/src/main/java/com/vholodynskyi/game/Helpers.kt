@@ -1,23 +1,22 @@
 package com.vholodynskyi.game
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Matrix
+import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.util.Log
 
-fun Drawable.drawableToBitmap(scale: Int = 2): Bitmap {
+fun Drawable.drawableToBitmap(size: Int = 150): Bitmap {
     if (this is BitmapDrawable) {
-        return bitmap
+        return Bitmap.createScaledBitmap(bitmap, size, size, false)
     }
     val bitmap = Bitmap.createBitmap(
-        intrinsicWidth / scale,
-        intrinsicHeight / scale,
+        200,
+        200,
         Bitmap.Config.ARGB_8888
     )
+
     val canvas = Canvas(bitmap)
-    setBounds(0, 0, canvas.width, canvas.height)
-    draw(canvas)
+    canvas.drawBitmap(bitmap, null, Rect(0, 0, size, size), null)
     return bitmap
 }
 

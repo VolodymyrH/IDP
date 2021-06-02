@@ -8,6 +8,8 @@ import android.util.Log
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import com.vholodynskyi.graph.R
+import java.util.*
+import kotlin.collections.ArrayList
 
 class GameView @JvmOverloads constructor(
     context: Context,
@@ -18,21 +20,22 @@ class GameView @JvmOverloads constructor(
     companion object {
         private const val TAG = "GameView"
         private const val FPS = 60
-        private const val HIT_BOX_SIZE = 10
+        private const val HIT_BOX_SIZE = 50
     }
 
     private val viewHolder = holder
     private var myTank = TankObject(
         this,
-        resources.getDrawable(R.mipmap.ic_launcher, null).drawableToBitmap(2),
+        resources.getDrawable(R.drawable.tank, null).drawableToBitmap(),
         width / 2f,
         height / 2f
     )
 
     private val gameLoopThread = GameLoopThread(this)
 
-    private val projectileList = ArrayList<ProjectileObject>()
-    private val collidableObjects = ArrayList<GameObject>()
+    private val projectileList = LinkedList<ProjectileObject>()
+    private val collidableObjects = LinkedList<GameObject>()
+    private val wallsList = LinkedList<WallObject>()
 
     init {
         viewHolder.addCallback(object : SurfaceHolder.Callback {
@@ -63,6 +66,23 @@ class GameView @JvmOverloads constructor(
                 }
             }
         })
+
+        val wall = WallObject(
+            this,
+            resources.getDrawable(R.drawable.brick, null).drawableToBitmap(100),
+            200f,
+            500f
+        )
+        val wall2 = WallObject(
+            this,
+            resources.getDrawable(R.drawable.brick, null).drawableToBitmap(100),
+            400f,
+            500f
+        )
+        wallsList.add(wall)
+        wallsList.add(wall2)
+        collidableObjects.add(wall)
+        collidableObjects.add(wall2)
     }
 
     override fun draw(canvas: Canvas) {
@@ -74,10 +94,18 @@ class GameView @JvmOverloads constructor(
         projectileList.forEach {
             if (it.valid) {
                 canvas.drawBitmap(it.bitmap, it.x, it.y, null)
+                checkProjectileCollision(it)
             } else {
                 projectileList.remove(it)
             }
-            checkProjectileCollision(it)
+        }
+
+        wallsList.forEach {
+            if (it.valid) {
+                canvas.drawBitmap(it.bitmap, it.x, it.y, null)
+            } else {
+                wallsList.remove(it)
+            }
         }
     }
 
@@ -108,7 +136,7 @@ class GameView @JvmOverloads constructor(
 
         val projectile = ProjectileObject(
             this,
-            resources.getDrawable(R.mipmap.ic_launcher, null).drawableToBitmap(5),
+            resources.getDrawable(R.drawable.tank, null).drawableToBitmap(50),
             x = myTank.x,
             y = myTank.y
         )
@@ -125,8 +153,8 @@ class GameView @JvmOverloads constructor(
 
     private fun checkProjectileCollision(projectile: ProjectileObject) {
         collidableObjects.forEach {
-            if (projectile.x in (it.x - HIT_BOX_SIZE)..(it.x + HIT_BOX_SIZE)
-                && projectile.y in (it.y - HIT_BOX_SIZE)..(it.y + HIT_BOX_SIZE)
+            if (projectile.x in (it.x - HIT_BOX_SIZE)..(it.x + it.bitmap.width + HIT_BOX_SIZE)
+                && projectile.y in (it.y - HIT_BOX_SIZE)..(it.y + it.bitmap.height + HIT_BOX_SIZE)
             ) {
                 projectile.valid = false
                 if (!it.consumeDamage()) {
@@ -168,5 +196,4 @@ class GameView @JvmOverloads constructor(
         }
     }
 }
-// додати стіни
 // додати інші танки
