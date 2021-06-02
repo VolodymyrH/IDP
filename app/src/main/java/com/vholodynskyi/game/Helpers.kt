@@ -6,18 +6,18 @@ import android.graphics.Matrix
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 
-fun Drawable.drawableToBitmap(): Bitmap {
+fun Drawable.drawableToBitmap(scale: Int = 2): Bitmap {
     if (this is BitmapDrawable) {
-        return this.bitmap
+        return bitmap
     }
     val bitmap = Bitmap.createBitmap(
-        this.intrinsicWidth,
-        this.intrinsicHeight,
+        intrinsicWidth / scale,
+        intrinsicHeight / scale,
         Bitmap.Config.ARGB_8888
     )
     val canvas = Canvas(bitmap)
-    this.setBounds(0, 0, canvas.width, canvas.height)
-    this.draw(canvas)
+    setBounds(0, 0, canvas.width, canvas.height)
+    draw(canvas)
     return bitmap
 }
 

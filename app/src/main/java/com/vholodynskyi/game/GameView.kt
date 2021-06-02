@@ -23,11 +23,13 @@ class GameView @JvmOverloads constructor(
     }
 
     private val viewHolder = holder
-    private var tank = TankObject(resources.getDrawable(R.mipmap.ic_launcher, null).drawableToBitmap())
+    private var tank = TankObject(resources.getDrawable(R.mipmap.ic_launcher, null).drawableToBitmap(2))
     private val gameLoopThread = GameLoopThread(this)
 
     private var tankXPosition = 0f
     private var tankYPosition = 0f
+
+    private val projectileList = ArrayList<Projectile>()
 
     private val xMoveAnimator = ValueAnimator.ofFloat().apply {
         duration = 500
@@ -103,6 +105,15 @@ class GameView @JvmOverloads constructor(
 
         canvas.drawColor(Color.DKGRAY)
         canvas.drawBitmap(tank.bitmap, tankXPosition, tankYPosition, null)
+
+        projectileList.forEach {
+            if (it.valid) {
+                canvas.drawBitmap(it.bitmap, it.x, it.y, null)
+            } else {
+                projectileList.remove(it)
+            }
+            checkCollision(it.x, it.y)
+        }
     }
 
     override fun onDetachedFromWindow() {
@@ -148,7 +159,27 @@ class GameView @JvmOverloads constructor(
     }
 
     fun fire() {
-        Log.d(TAG, "FIRE")
+        Log.d(TAG, "FIRE ${tank.orientation}")
+
+        val projectile = Projectile(
+            this,
+            resources.getDrawable(R.mipmap.ic_launcher, null).drawableToBitmap(5),
+            x = tankXPosition,
+            y = tankYPosition
+        )
+
+        projectileList.add(projectile)
+
+        when (tank.orientation) {
+            Orientation.Left -> projectile.shootLeft()
+            Orientation.Right -> projectile.shootRight()
+            Orientation.Up -> projectile.shootUp()
+            Orientation.Down -> projectile.shootDown()
+        }
+    }
+
+    private fun checkCollision(x: Float, y: Float) {
+        TODO("Not yet implemented")
     }
 
     private class GameLoopThread(private val view: GameView) : Thread() {
@@ -183,3 +214,6 @@ class GameView @JvmOverloads constructor(
         }
     }
 }
+// зробити колайд
+// додати стіни
+// додати інші танки

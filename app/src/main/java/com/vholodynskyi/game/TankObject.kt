@@ -3,7 +3,7 @@ package com.vholodynskyi.game
 import android.graphics.Bitmap
 
 class TankObject(var bitmap: Bitmap) {
-    private var orientation = Orientation.Up
+    var orientation = Orientation.Up
 
     init {
         goUp()
