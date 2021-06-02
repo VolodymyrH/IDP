@@ -9,6 +9,7 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import com.vholodynskyi.graph.R
 import java.util.*
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.collections.ArrayList
 
 class GameView @JvmOverloads constructor(
@@ -24,18 +25,22 @@ class GameView @JvmOverloads constructor(
     }
 
     private val viewHolder = holder
+    private val gameLoopThread = GameLoopThread(this)
+
+    private val projectileList = CopyOnWriteArrayList<ProjectileObject>()
+    private val collidableObjects = CopyOnWriteArrayList<GameObject>()
+    private val wallsList = CopyOnWriteArrayList<WallObject>()
+    private val enemyList = CopyOnWriteArrayList<TankObject>()
+
     private var myTank = TankObject(
         this,
         resources.getDrawable(R.drawable.tank, null).drawableToBitmap(),
         width / 2f,
-        height / 2f
+        height / 2f,
+        enemy = false,
+        collidableObjects
     )
 
-    private val gameLoopThread = GameLoopThread(this)
-
-    private val projectileList = LinkedList<ProjectileObject>()
-    private val collidableObjects = LinkedList<GameObject>()
-    private val wallsList = LinkedList<WallObject>()
 
     init {
         viewHolder.addCallback(object : SurfaceHolder.Callback {
@@ -83,12 +88,24 @@ class GameView @JvmOverloads constructor(
         wallsList.add(wall2)
         collidableObjects.add(wall)
         collidableObjects.add(wall2)
+
+        val enemy = TankObject(
+            this,
+            resources.getDrawable(R.drawable.tank, null).drawableToBitmap(),
+            500f,
+            500f,
+            enemy = true,
+            collidableObjects
+        )
+
+        enemyList.add(enemy)
+        collidableObjects.add(enemy)
     }
 
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
 
-        canvas.drawColor(Color.DKGRAY)
+        canvas.drawColor(resources.getColor(R.color.grass, null))
         canvas.drawBitmap(myTank.bitmap, myTank.x, myTank.y, null)
 
         projectileList.forEach {
@@ -105,6 +122,14 @@ class GameView @JvmOverloads constructor(
                 canvas.drawBitmap(it.bitmap, it.x, it.y, null)
             } else {
                 wallsList.remove(it)
+            }
+        }
+
+        enemyList.forEach {
+            if (it.valid) {
+                canvas.drawBitmap(it.bitmap, it.x, it.y, null)
+            } else {
+                enemyList.remove(it)
             }
         }
     }
@@ -196,4 +221,3 @@ class GameView @JvmOverloads constructor(
         }
     }
 }
-// додати інші танки

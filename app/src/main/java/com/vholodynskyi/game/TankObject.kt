@@ -7,11 +7,14 @@ class TankObject(
     override val view: GameView,
     override var bitmap: Bitmap,
     override var x: Float,
-    override var y: Float
+    override var y: Float,
+    val enemy: Boolean = true,
+    private val collidableObjects: List<GameObject>
 ) : GameObject() {
 
     companion object {
         private const val MOVE_DISTANCE = 100f
+        private const val HIT_BOX_SIZE = 20
     }
 
     var orientation = Orientation.Up
@@ -24,6 +27,14 @@ class TankObject(
             if (value < 0) {
                 x = 0f
                 return@addUpdateListener
+            }
+
+            collidableObjects.forEach { obj ->
+                if ((x + bitmap.width) in (obj.x - HIT_BOX_SIZE)..(obj.x + obj.bitmap.width + HIT_BOX_SIZE)
+                    && (y + bitmap.height) in (obj.y - HIT_BOX_SIZE)..(obj.y + obj.bitmap.height + HIT_BOX_SIZE)
+                ) {
+                    return@addUpdateListener
+                }
             }
 
             if (value > view.width - bitmap.width) {
