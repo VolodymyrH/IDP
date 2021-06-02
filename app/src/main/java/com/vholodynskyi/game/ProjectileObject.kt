@@ -4,13 +4,12 @@ import android.animation.ValueAnimator
 import android.graphics.Bitmap
 import android.util.Log
 
-class Projectile(
-    private val view: GameView,
-    var bitmap: Bitmap,
-    var x: Float = 0f,
-    var y: Float = 0f,
-    var valid: Boolean = true
-) {
+class ProjectileObject(
+    override val view: GameView,
+    override var bitmap: Bitmap,
+    override var x: Float,
+    override var y: Float
+) : GameObject() {
 
     private var orientation = Orientation.Up
 

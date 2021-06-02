@@ -1,6 +1,5 @@
 package com.vholodynskyi.game
 
-import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -19,55 +18,19 @@ class GameView @JvmOverloads constructor(
     companion object {
         private const val TAG = "GameView"
         private const val FPS = 60
-        private const val MOVE_DISTANCE = 100f
     }
 
     private val viewHolder = holder
-    private var tank = TankObject(resources.getDrawable(R.mipmap.ic_launcher, null).drawableToBitmap(2))
+    private var myTank = TankObject(
+        this,
+        resources.getDrawable(R.mipmap.ic_launcher, null).drawableToBitmap(2),
+        width / 2f,
+        height / 2f)
+
     private val gameLoopThread = GameLoopThread(this)
 
-    private var tankXPosition = 0f
-    private var tankYPosition = 0f
-
-    private val projectileList = ArrayList<Projectile>()
-
-    private val xMoveAnimator = ValueAnimator.ofFloat().apply {
-        duration = 500
-        addUpdateListener {
-            val value = it.animatedValue as Float
-
-            if (value < 0) {
-                tankXPosition = 0f
-                return@addUpdateListener
-            }
-
-            if (value > width - tank.bitmap.width) {
-                tankXPosition = (width - tank.bitmap.width).toFloat()
-                return@addUpdateListener
-            }
-
-            tankXPosition = value
-        }
-    }
-
-    private val yMoveAnimator = ValueAnimator.ofFloat().apply {
-        duration = 500
-        addUpdateListener {
-            val value = it.animatedValue as Float
-
-            if (value < 0) {
-                tankYPosition = 0f
-                return@addUpdateListener
-            }
-
-            if (value > height - tank.bitmap.height) {
-                tankYPosition = height.toFloat()
-                return@addUpdateListener
-            }
-
-            tankYPosition = value
-        }
-    }
+    private val projectileList = ArrayList<ProjectileObject>()
+    private val collidableObjects = ArrayList<GameObject>()
 
     init {
         viewHolder.addCallback(object : SurfaceHolder.Callback {
@@ -104,7 +67,7 @@ class GameView @JvmOverloads constructor(
         super.draw(canvas)
 
         canvas.drawColor(Color.DKGRAY)
-        canvas.drawBitmap(tank.bitmap, tankXPosition, tankYPosition, null)
+        canvas.drawBitmap(myTank.bitmap, myTank.x, myTank.y, null)
 
         projectileList.forEach {
             if (it.valid) {
@@ -123,54 +86,34 @@ class GameView @JvmOverloads constructor(
     }
 
     fun up() {
-        yMoveAnimator.apply {
-            setFloatValues(tankYPosition, tankYPosition - MOVE_DISTANCE)
-            start()
-        }
-
-        tank.goUp()
+        myTank.goUp()
     }
 
     fun down() {
-        yMoveAnimator.apply {
-            setFloatValues(tankYPosition, tankYPosition + MOVE_DISTANCE)
-            start()
-        }
-
-        tank.goDown()
+        myTank.goDown()
     }
 
     fun right() {
-        xMoveAnimator.apply {
-            setFloatValues(tankXPosition, tankXPosition + MOVE_DISTANCE)
-            start()
-        }
-
-        tank.goRight()
+        myTank.goRight()
     }
 
     fun left() {
-        xMoveAnimator.apply {
-            setFloatValues(tankXPosition, tankXPosition - MOVE_DISTANCE)
-            start()
-        }
-
-        tank.goLeft()
+        myTank.goLeft()
     }
 
     fun fire() {
-        Log.d(TAG, "FIRE ${tank.orientation}")
+        Log.d(TAG, "FIRE ${myTank.orientation}")
 
-        val projectile = Projectile(
+        val projectile = ProjectileObject(
             this,
             resources.getDrawable(R.mipmap.ic_launcher, null).drawableToBitmap(5),
-            x = tankXPosition,
-            y = tankYPosition
+            x = myTank.x,
+            y = myTank.y
         )
 
         projectileList.add(projectile)
 
-        when (tank.orientation) {
+        when (myTank.orientation) {
             Orientation.Left -> projectile.shootLeft()
             Orientation.Right -> projectile.shootRight()
             Orientation.Up -> projectile.shootUp()
@@ -179,7 +122,7 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun checkCollision(x: Float, y: Float) {
-        TODO("Not yet implemented")
+
     }
 
     private class GameLoopThread(private val view: GameView) : Thread() {
