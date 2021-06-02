@@ -18,6 +18,7 @@ class GameView @JvmOverloads constructor(
     companion object {
         private const val TAG = "GameView"
         private const val FPS = 60
+        private const val HIT_BOX_SIZE = 10
     }
 
     private val viewHolder = holder
@@ -25,7 +26,8 @@ class GameView @JvmOverloads constructor(
         this,
         resources.getDrawable(R.mipmap.ic_launcher, null).drawableToBitmap(2),
         width / 2f,
-        height / 2f)
+        height / 2f
+    )
 
     private val gameLoopThread = GameLoopThread(this)
 
@@ -75,7 +77,7 @@ class GameView @JvmOverloads constructor(
             } else {
                 projectileList.remove(it)
             }
-            checkCollision(it.x, it.y)
+            checkProjectileCollision(it)
         }
     }
 
@@ -121,8 +123,17 @@ class GameView @JvmOverloads constructor(
         }
     }
 
-    private fun checkCollision(x: Float, y: Float) {
-
+    private fun checkProjectileCollision(projectile: ProjectileObject) {
+        collidableObjects.forEach {
+            if (projectile.x in (it.x - HIT_BOX_SIZE)..(it.x + HIT_BOX_SIZE)
+                && projectile.y in (it.y - HIT_BOX_SIZE)..(it.y + HIT_BOX_SIZE)
+            ) {
+                projectile.valid = false
+                if (!it.consumeDamage()) {
+                    collidableObjects.remove(it)
+                }
+            }
+        }
     }
 
     private class GameLoopThread(private val view: GameView) : Thread() {
@@ -157,6 +168,5 @@ class GameView @JvmOverloads constructor(
         }
     }
 }
-// зробити колайд
 // додати стіни
 // додати інші танки

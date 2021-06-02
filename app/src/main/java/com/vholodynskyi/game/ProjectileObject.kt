@@ -42,6 +42,11 @@ class ProjectileObject(
         }
     }
 
+    override fun consumeDamage(): Boolean {
+        valid = false
+        return false
+    }
+
     fun shootLeft() {
         val changedAngle = orientation.degree - Orientation.Left.degree
         orientation = Orientation.Left

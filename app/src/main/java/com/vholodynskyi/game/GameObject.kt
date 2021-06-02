@@ -8,4 +8,6 @@ abstract class GameObject {
     abstract var x: Float
     abstract var y: Float
     var valid: Boolean = true
+
+    abstract fun consumeDamage(): Boolean
 }

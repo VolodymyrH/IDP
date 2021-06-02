@@ -58,6 +58,11 @@ class TankObject(
         goUp()
     }
 
+    override fun consumeDamage(): Boolean {
+        valid = false
+        return false
+    }
+
     fun goLeft() {
         val changedAngle = orientation.degree - Orientation.Left.degree
         orientation = Orientation.Left
